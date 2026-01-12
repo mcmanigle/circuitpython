@@ -620,6 +620,7 @@ $(filter $(SRC_PATTERNS), \
 	imagecapture/ParallelImageCapture.c \
 	locale/__init__.c \
 	math/__init__.c \
+	max3421e/GPIO.c \
 	microcontroller/ResetReason.c \
 	microcontroller/RunMode.c \
 	msgpack/__init__.c \

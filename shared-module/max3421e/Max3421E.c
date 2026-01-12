@@ -1,6 +1,7 @@
 // This file is part of the CircuitPython project: https://circuitpython.org
 //
 // SPDX-FileCopyrightText: Copyright (c) 2024 Scott Shawcroft for Adafruit Industries
+// SPDX-FileCopyrightText: Copyright (c) 2026 John McManigle
 //
 // SPDX-License-Identifier: MIT
 
@@ -50,6 +51,7 @@ void common_hal_max3421e_max3421e_construct(max3421e_max3421e_obj_t *self,
 
     self->bus = spi;
     self->baudrate = baudrate;
+    self->gpout_cache = 0;
     _active = self;
 
     tuh_configure(CIRCUITPY_USB_MAX3421_INSTANCE, 0, NULL);
@@ -75,6 +77,65 @@ void common_hal_max3421e_max3421e_deinit(max3421e_max3421e_obj_t *self) {
     if (_active == self) {
         _active = NULL;
     }
+}
+
+uint8_t common_hal_max3421e_max3421e_get_gpins(mp_obj_t self_in) {
+    uint8_t tx[2];
+    uint8_t rx[2];
+
+    // First (command) bit is [r4, r3, r2, r1, r0, 0, r/w, ackstat]
+    // Where r/w is 0 for read, 1 for write
+    // And ackstat is unused in host mode
+
+    // Read IOPINS1 (GPIN0–3 in upper nibble)
+    tx[0] = (MAX3421E_REG_IOPINS1 << 3) | MAX3421E_CMD_READ;
+    tx[1] = 0xFF;
+    tuh_max3421_spi_xfer_api(0, tx, rx, 2);
+    uint8_t gpin_low = (rx[1] >> 4) & 0x0F;
+
+    // Read IOPINS2 (GPIN4–7 in upper nibble)
+    tx[0] = (MAX3421E_REG_IOPINS2 << 3) | MAX3421E_CMD_READ;
+    tx[1] = 0xFF;
+    tuh_max3421_spi_xfer_api(0, tx, rx, 2);
+    uint8_t gpin_high = (rx[1] >> 4) & 0x0F;
+
+    return (uint8_t)((gpin_high << 4) | gpin_low);
+}
+
+uint8_t common_hal_max3421e_max3421e_get_gpouts(mp_obj_t self_in) {
+    max3421e_max3421e_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return self->gpout_cache;
+}
+
+void common_hal_max3421e_max3421e_set_gpouts(
+    mp_obj_t self_in, uint8_t value, uint8_t mask) {
+
+    max3421e_max3421e_obj_t *self = MP_OBJ_TO_PTR(self_in);
+
+    // Merge with cache
+    uint8_t new_out =
+        (self->gpout_cache & (uint8_t)~mask) |
+        (value & mask);
+
+    self->gpout_cache = new_out;
+
+    uint8_t tx[2];
+
+    // First (command) bit is [r4, r3, r2, r1, r0, 0, r/w, ackstat]
+    // Where r/w is 0 for read, 1 for write
+    // And ackstat is unused in host mode
+
+    // Second (write) byte is the data to write.
+
+    // Write GPOUT0–3 → IOPINS1 lower nibble
+    tx[0] = (MAX3421E_REG_IOPINS1 << 3) | MAX3421E_CMD_WRITE;
+    tx[1] = new_out & 0x0F;
+    tuh_max3421_spi_xfer_api(0, tx, NULL, 2);
+
+    // Write GPOUT4–7 → IOPINS2 lower nibble
+    tx[0] = (MAX3421E_REG_IOPINS2 << 3) | MAX3421E_CMD_WRITE;
+    tx[1] = (new_out >> 4) & 0x0F;
+    tuh_max3421_spi_xfer_api(0, tx, NULL, 2);
 }
 
 // TinyUSB uses the frame number from the host interface to measure time but it

@@ -1,17 +1,28 @@
 // This file is part of the CircuitPython project: https://circuitpython.org
 //
 // SPDX-FileCopyrightText: Copyright (c) 2024 Scott Shawcroft for Adafruit Industries
+// SPDX-FileCopyrightText: Copyright (c) 2026 John McManigle
 //
 // SPDX-License-Identifier: MIT
 
 #include "shared-bindings/max3421e/Max3421E.h"
+#include "shared-bindings/max3421e/GPIO.h"
 
 #include "py/runtime.h"
+#include "py/objproperty.h"
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/microcontroller/Pin.h"
 
 //| class Max3421E:
-//|     """Interface with a Max3421E usb host chip."""
+//|     """Interface to a MAX3421E USB controller in host mode.
+//|
+//|     This object manages communication with the MAX3421E over SPI and
+//|     enables USB host support via the ``usb`` module.
+//|
+//|     It also provides access to the MAX3421E's GPIN and GPOUT pins
+//|     through pin-like proxy objects returned by :meth:`get_gpin` and
+//|     :meth:`get_gpout`.
+//|     """
 //|
 //|     def __init__(
 //|         self,
@@ -69,9 +80,84 @@ static mp_obj_t max3421e_max3421e_obj_deinit(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(max3421e_max3421e_deinit_obj, max3421e_max3421e_obj_deinit);
 
+//|     def get_gpin(self, pin: int) -> GPIO:
+//|         """Return a GPIO proxy for a general-purpose input pin.
+//|
+//|         The returned object behaves like a read-only digital input pin
+//|         with a ``value`` property and a fixed ``direction`` of INPUT.
+//|
+//|         :param int pin: GPIN pin number (0–7)
+//|         :return: A GPIO proxy object
+//|         :rtype: GPIO
+//|         :raises ValueError: If the pin number is out of range
+//|         """
+static mp_obj_t max3421e_max3421e_get_gpin(
+    mp_obj_t self_in,
+    mp_obj_t pin_in) {
+
+    int pin = mp_obj_get_int(pin_in);
+    if (pin < 0 || pin > 7) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("Pin number out of range (0-7)"));
+    }
+
+    max3421e_gpio_obj_t *gpio =
+        mp_obj_malloc(max3421e_gpio_obj_t,
+                       &max3421e_gpio_type);
+
+    gpio->host = self_in;
+    gpio->pin = (uint8_t)pin;
+    gpio->role = MAX3421E_GPIO_ROLE_INPUT;
+
+    return MP_OBJ_FROM_PTR(gpio);
+}
+MP_DEFINE_CONST_FUN_OBJ_2(
+    max3421e_max3421e_get_gpin_obj,
+    max3421e_max3421e_get_gpin
+);
+
+//|     def get_gpout(self, pin: int) -> GPIO:
+//|         """Return a GPIO proxy for a general-purpose output pin.
+//|
+//|         The returned object behaves like a digital output pin with
+//|         readable and writable ``value`` and a fixed ``direction`` of OUTPUT.
+//|
+//|         :param int pin: GPOUT pin number (0–7)
+//|         :return: A GPIO proxy object
+//|         :rtype: GPIO
+//|         :raises ValueError: If the pin number is out of range
+//|         """
+static mp_obj_t max3421e_max3421e_get_gpout(
+    mp_obj_t self_in,
+    mp_obj_t pin_in) {
+
+    int pin = mp_obj_get_int(pin_in);
+    if (pin < 0 || pin > 7) {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("Pin number out of range (0-7)"));
+    }
+
+    max3421e_gpio_obj_t *gpio =
+        mp_obj_malloc(max3421e_gpio_obj_t,
+                       &max3421e_gpio_type);
+
+    gpio->host = self_in;
+    gpio->pin = (uint8_t)pin;
+    gpio->role = MAX3421E_GPIO_ROLE_OUTPUT;
+
+    return MP_OBJ_FROM_PTR(gpio);
+}
+MP_DEFINE_CONST_FUN_OBJ_2(
+    max3421e_max3421e_get_gpout_obj,
+    max3421e_max3421e_get_gpout
+);
+
+
 static const mp_rom_map_elem_t max3421e_max3421e_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&max3421e_max3421e_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&max3421e_max3421e_deinit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_gpin), MP_ROM_PTR(&max3421e_max3421e_get_gpin_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_gpout), MP_ROM_PTR(&max3421e_max3421e_get_gpout_obj) }
 };
 static MP_DEFINE_CONST_DICT(max3421e_max3421e_locals_dict, max3421e_max3421e_locals_dict_table);
 
