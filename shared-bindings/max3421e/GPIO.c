@@ -160,7 +160,7 @@ static MP_DEFINE_CONST_DICT(
 MP_DEFINE_CONST_OBJ_TYPE(
     max3421e_gpio_type,
     MP_QSTR_GPIO,
-    MP_TYPE_FLAG_NONE,
+    MP_TYPE_FLAG_HAS_SPECIAL_ACCESSORS,
     locals_dict, &max3421e_gpio_locals_dict
 );
 
