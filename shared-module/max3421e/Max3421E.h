@@ -13,8 +13,8 @@
 
 #define CIRCUITPY_USB_MAX3421_INSTANCE 2
 
-#define MAX3421E_REG_IOPINS1  ((uint8_t)20) // = 0x14, SPI register for low-side inputs (high byte) and outputs (low byte)
-#define MAX3421E_REG_IOPINS2  ((uint8_t)21) // = 0x15, SPI register for high-side inputs (high byte) and outputs (low byte)
+#define MAX3421E_REG_IOPINS1  ((uint8_t)20) // SPI register for low-side inputs (high byte) and outputs (low byte)
+#define MAX3421E_REG_IOPINS2  ((uint8_t)21) // SPI register for high-side inputs (high byte) and outputs (low byte)
 
 #define MAX3421E_CMD_READ  (0u << 1)
 #define MAX3421E_CMD_WRITE (1u << 1)

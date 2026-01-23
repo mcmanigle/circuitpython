@@ -97,12 +97,9 @@ static const mp_obj_property_t max3421e_gpio_value_obj = {
 static mp_obj_t max3421e_gpio_get_direction(mp_obj_t self_in) {
     max3421e_gpio_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-    digitalio_direction_t dir =
-        (self->role == MAX3421E_GPIO_ROLE_INPUT)
-        ? DIRECTION_INPUT
-        : DIRECTION_OUTPUT;
-
-    return MP_OBJ_NEW_SMALL_INT(dir);
+    if(self->role == MAX3421E_GPIO_ROLE_INPUT)
+        return (mp_obj_t)&digitalio_direction_input_obj;
+    return (mp_obj_t)&digitalio_direction_output_obj;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(
     max3421e_gpio_get_direction_obj,
@@ -114,20 +111,29 @@ static mp_obj_t max3421e_gpio_set_direction(
     mp_obj_t dir_in) {
 
     max3421e_gpio_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    digitalio_direction_t requested =
-        (digitalio_direction_t)mp_obj_get_int(dir_in);
+
+    digitalio_direction_t requested;
+    if (dir_in == MP_ROM_PTR(&digitalio_direction_output_obj))
+        requested = DIRECTION_OUTPUT;
+    else if (dir_in == MP_ROM_PTR(&digitalio_direction_input_obj))
+        requested = DIRECTION_INPUT;
+    else {
+        mp_raise_ValueError(
+            MP_ERROR_TEXT("Don't understand this direction"));
+    }
 
     digitalio_direction_t actual =
         (self->role == MAX3421E_GPIO_ROLE_INPUT)
         ? DIRECTION_INPUT
         : DIRECTION_OUTPUT;
 
+    // Incompatible direction is error
     if (requested != actual) {
         mp_raise_ValueError(
             MP_ERROR_TEXT("Pin direction is fixed by hardware"));
     }
 
-    // Compatible direction → no-op
+    // Compatible direction is no-op
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_2(
