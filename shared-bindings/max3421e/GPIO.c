@@ -37,15 +37,12 @@
 static mp_obj_t max3421e_gpio_get_value(mp_obj_t self_in) {
     max3421e_gpio_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
-    if (self->role == MAX3421E_GPIO_ROLE_INPUT) {
-        uint8_t v =
-            common_hal_max3421e_max3421e_get_gpins(self->host);
-        return mp_obj_new_bool((v >> self->pin) & 1);
-    }
-
     // OUTPUT: read back cached outputs
-    uint8_t v =
-        common_hal_max3421e_max3421e_get_gpouts(self->host);
+    uint8_t v = common_hal_max3421e_max3421e_get_gpouts(self->host);
+    // INPUT: read actual inputs
+    if (self->role == MAX3421E_GPIO_ROLE_INPUT)
+        v = common_hal_max3421e_max3421e_get_gpins(self->host);
+
     return mp_obj_new_bool((v >> self->pin) & 1);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(
@@ -91,7 +88,8 @@ static const mp_obj_property_t max3421e_gpio_value_obj = {
 //|     """The fixed direction of the GPIO pin.
 //|
 //|     The direction is determined by the hardware configuration and
-//|     cannot be changed. Assigning the same direction is allowed and
+//|     cannot be changed. This parameter is included to improve compatibility
+//|     with other libraries. Assigning the "correct" direction is allowed and
 //|     has no effect. Assigning a different direction raises ``ValueError``.
 //|     """
 static mp_obj_t max3421e_gpio_get_direction(mp_obj_t self_in) {
@@ -163,10 +161,20 @@ static MP_DEFINE_CONST_DICT(
 );
 
 
+static void max3421e_gpio_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+    max3421e_gpio_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    qstr direction = MP_QSTR_OUTPUT;
+    if (self->role == MAX3421E_GPIO_ROLE_INPUT)
+        direction = MP_QSTR_INPUT;
+    mp_printf(print, "%q.%q %q %d", MP_QSTR_Max3421E, MP_QSTR_GPIO, direction, self->pin);
+}
+
+
 MP_DEFINE_CONST_OBJ_TYPE(
     max3421e_gpio_type,
     MP_QSTR_GPIO,
     MP_TYPE_FLAG_HAS_SPECIAL_ACCESSORS,
+    print, max3421e_gpio_print,
     locals_dict, &max3421e_gpio_locals_dict
 );
 
