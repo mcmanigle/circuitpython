@@ -83,6 +83,7 @@ uint8_t common_hal_max3421e_max3421e_get_gpins(mp_obj_t self_in) {
     uint8_t tx[2];
     uint8_t rx[2];
 
+    tuh_max3421_int_api(0, false);
     tuh_max3421_spi_cs_api(0, true);
 
     // First (command) bit is [r4, r3, r2, r1, r0, 0, r/w, ackstat]
@@ -102,6 +103,7 @@ uint8_t common_hal_max3421e_max3421e_get_gpins(mp_obj_t self_in) {
     uint8_t gpin_high = (rx[1] >> 4) & 0x0F;
 
     tuh_max3421_spi_cs_api(0, false);
+    tuh_max3421_int_api(0, false);
 
     return (uint8_t)((gpin_high << 4) | gpin_low);
 }
@@ -125,6 +127,7 @@ void common_hal_max3421e_max3421e_set_gpouts(
 
     uint8_t tx[2];
 
+    tuh_max3421_int_api(0, false);
     tuh_max3421_spi_cs_api(0, true);
 
     // First (command) bit is [r4, r3, r2, r1, r0, 0, r/w, ackstat]
@@ -144,6 +147,7 @@ void common_hal_max3421e_max3421e_set_gpouts(
     tuh_max3421_spi_xfer_api(0, tx, NULL, 2);
 
     tuh_max3421_spi_cs_api(0, false);
+    tuh_max3421_int_api(0, true);
 }
 
 // TinyUSB uses the frame number from the host interface to measure time but it
